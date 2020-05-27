@@ -1,0 +1,21 @@
+{
+  "name": "discord-poll-bot",
+  "version": "1.0.0",
+  "description": "A discord bot for making polls",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "test": "node src/bot.js"
+  },
+  "keywords": [
+    "Node",
+    "Discord",
+    "Bot"
+  ],
+  "author": "Arnav Sirigere",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.2.0",
+    "dotenv": "^8.2.0"
+  }
+}
