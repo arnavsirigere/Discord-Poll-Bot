@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+require('../server');
+
 const { Poll } = require('./poll'); // The Poll Class
 let poll;
 let usersToChangePoll = [];
