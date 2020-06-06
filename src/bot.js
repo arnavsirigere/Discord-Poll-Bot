@@ -1,6 +1,7 @@
 require('dotenv').config();
 
-require('../server');
+const keepAlive = require('../server');
+keepAlive();
 
 const { Poll } = require('./poll'); // The Poll Class
 let poll;

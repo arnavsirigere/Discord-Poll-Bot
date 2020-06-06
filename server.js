@@ -1,6 +1,15 @@
-var express = require('express');
-var app = express();
-app.get('/', (request, response) => {
-  response.sendStatus(200);
+const express = require('express');
+
+const server = express();
+
+server.all('/', (req, res) => {
+  res.send('Discord Bot is alive!');
 });
-app.listen(process.env.PORT);
+
+function keepAlive() {
+  server.listen(3000, () => {
+    console.log('Server is ready!');
+  });
+}
+
+module.exports = keepAlive;
