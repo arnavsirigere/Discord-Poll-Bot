@@ -54,7 +54,7 @@ client.on('message', async (message) => {
 
           // Creating the poll
           poll = new Poll(ques, options);
-          let pollMssg = `@everyone ${ques.toUpperCase()}?`;
+          let pollMssg = `@ everyone ${ques.toUpperCase()}?`;
           for (let i = 0; i < options.length; i++) {
             pollMssg += `\n${String.fromCharCode(i + 65)} - ${options[i].substr(0, 1).toUpperCase() + options[i].substr(1, options[i].length).toLowerCase()}`;
           }
@@ -86,7 +86,7 @@ client.on('message', async (message) => {
             }
             // Send a message with the results of the poll with some highlighting 😊
             let ques = '`' + poll.ques + '?' + '`';
-            let completionMssg = `@everyone The poll for ${ques} is complete!\nHere are the results - \n\n`;
+            let completionMssg = `@ everyone The poll for ${ques} is complete!\nHere are the results - \n\n`;
             let keys = Object.keys(results);
             for (let i = 0; i < keys.length; i++) {
               let key = keys[i];
@@ -117,25 +117,34 @@ client.on('message', async (message) => {
     if (/^!poll/i.test(content) && !pollActivatorRegex.test(content)) {
       // Check if there is a ongoing poll
       if (poll) {
-        let option = content.split(' ')[1].toUpperCase().charCodeAt(0) - 65; // What did the user choose?
-        if (/!poll\s\w$/i.test(content) && option < poll.options.length) {
-          // Check if user has already responded
-          if (poll.entries.includes(userId)) {
-            // Just in case the user adds another response which is the same
-            let sameResponse = option == responses[userId];
-            await message.reply(sameResponse ? 'You have already responded!' : 'You have already responded! Would you like to change your response? y/n');
-            if (!sameResponse) {
-              usersToChangePoll.push({ userId, response: option }); // Keep the changed response in mind
+        if (/!poll\s\w$/i.test(content)) {
+          let option = content.split(' ')[1].toUpperCase().charCodeAt(0) - 65; // What did the user choose?
+          if (option < poll.options.length) {
+            // Check if user has already responded
+            if (poll.entries.includes(userId)) {
+              // Just in case the user adds another response which is the same
+              let sameResponse = option == responses[userId];
+              await message.reply(sameResponse ? 'You have already responded!' : 'You have already responded! Would you like to change your response? y/n');
+              if (!sameResponse) {
+                usersToChangePoll.push({ userId, response: option }); // Keep the changed response in mind
+              }
+            } else {
+              poll.entries.push(userId); // Mark this user as responded
+              // Notify the user of her/his response
+              await message.reply(`Your response for "${poll.options[option]}" was recorded! 😃`);
+              responses[userId] = option; // Keep track of the response incase the user wants to change it later
+              poll.responses[option] = poll.responses[option] ? ++poll.responses[option] : 1; // Save that response
             }
           } else {
-            poll.entries.push(userId); // Mark this user as responded
-            // Notify the user of her/his response
-            await message.reply(`Your response for "${poll.options[option]}" was recorded! 😃`);
-            responses[userId] = option; // Keep track of the response incase the user wants to change it later
-            poll.responses[option] = poll.responses[option] ? ++poll.responses[option] : 1; // Save that response
+            await message.reply('Invalid response!');
           }
-        } else {
-          await message.reply('Invalid response!');
+        } else if (/!poll add ".+"/g.test(content)) {
+          let newOption = content.match(/"(.+)"/)[0]; // The new option to be added
+          newOption = newOption.substring(1, newOption.length - 1); // Filtering out the quotes
+          poll.options.push(newOption); // Adding the option
+          let char = String.fromCharCode(65 + poll.options.length - 1); // The letter that denotes that option
+          // Telling everyone a new option was added
+          await pollChannel.send(`@ everyone A new option ${'`' + `${char} - ` + newOption + '`'} was added for the poll ${'`' + poll.ques + '`'}!`);
         }
       } else {
         await message.reply("There isn't a current poll!");
