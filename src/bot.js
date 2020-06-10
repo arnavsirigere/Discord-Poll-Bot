@@ -54,7 +54,7 @@ client.on('message', async (message) => {
 
           // Creating the poll
           poll = new Poll(ques, options);
-          let pollMssg = `@ everyone ${ques.toUpperCase()}?`;
+          let pollMssg = `@everyone ${ques.toUpperCase()}?`;
           for (let i = 0; i < options.length; i++) {
             pollMssg += `\n${String.fromCharCode(i + 65)} - ${options[i].substr(0, 1).toUpperCase() + options[i].substr(1, options[i].length).toLowerCase()}`;
           }
@@ -86,7 +86,7 @@ client.on('message', async (message) => {
             }
             // Send a message with the results of the poll with some highlighting 😊
             let ques = '`' + poll.ques + '?' + '`';
-            let completionMssg = `@ everyone The poll for ${ques} is complete!\nHere are the results - \n\n`;
+            let completionMssg = `@everyone The poll for ${ques} is complete!\nHere are the results - \n\n`;
             let keys = Object.keys(results);
             for (let i = 0; i < keys.length; i++) {
               let key = keys[i];
@@ -144,7 +144,7 @@ client.on('message', async (message) => {
           poll.options.push(newOption); // Adding the option
           let char = String.fromCharCode(65 + poll.options.length - 1); // The letter that denotes that option
           // Telling everyone a new option was added
-          await pollChannel.send(`@ everyone A new option ${'`' + `${char} - ` + newOption + '`'} was added for the poll ${'`' + poll.ques + '`'}!`);
+          await pollChannel.send(`@everyone A new option ${'`' + `${char} - ` + newOption + '`'} was added for the poll ${'`' + poll.ques + '`'}!`);
         }
       } else {
         await message.reply("There isn't a current poll!");
