@@ -1,18 +1,47 @@
 require('dotenv').config();
 
-const keepAlive = require('../server');
-keepAlive();
-
 const { Poll } = require('./poll'); // The Poll Class
 let poll;
 let usersToChangePoll = [];
 let responses = {};
 
+const firebase = require('firebase');
+const app = firebase.initializeApp({
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  databaseURL: process.env.DATABASE_URL,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.SENDER_ID,
+  appId: process.env.APP_ID,
+});
+const database = app.database();
+// On start, checking if a poll was ongoing or not
+let pollExists;
+const pollExistsRef = database.ref(`poll-exists/${process.env.POLL_EXISTS_ID}`);
+pollExistsRef.on('value', (data) => {
+  data = data.val();
+  pollExists = data.pollExists;
+});
+// Ref for all the data regarding the poll
+const pollRef = database.ref(`poll-data/${process.env.POLL_DATA_ID}`);
+pollRef.on('value', (data) => {
+  // Restoring any lost data
+  if (pollExists) {
+    let pollData = data.val();
+    let p = pollData.poll;
+    poll = new Poll(p.ques, p.options, p.responses, p.entries);
+    responses = pollData.responses || {};
+    usersToChangePoll = pollData.usersToChangePoll || [];
+  }
+});
+
+const keepAlive = require('../server');
+keepAlive();
+
 const Discord = require('discord.js');
 const client = new Discord.Client();
-
 client.login(process.env.BOT_TOKEN);
-
 client.on('ready', () => console.log('Discord Bot Starting!'));
 
 client.on('message', async (message) => {
@@ -44,7 +73,7 @@ client.on('message', async (message) => {
     if (validUser) {
       if (pollActivatorRegex.test(content)) {
         // Check if there is already a poll before creating one
-        if (!poll) {
+        if (!pollExists) {
           console.log('Poll Activated');
           let options = content.split('"');
           options.shift(); // We don't want the question to be "!poll" !
@@ -53,6 +82,7 @@ client.on('message', async (message) => {
           options = options.filter((option) => /\w/.test(option)); // Filtering out some empty strings the splitting gives
 
           // Creating the poll
+          pollExistsRef.set({ pollExists: true }); // Remembering that we have a ongoing poll
           poll = new Poll(ques, options);
           let pollMssg = `@everyone ${ques.toUpperCase()}?`;
           for (let i = 0; i < options.length; i++) {
@@ -64,13 +94,16 @@ client.on('message', async (message) => {
           await message.reply('There is already a ongoing poll!');
         }
       } else if (pollEvaluatorRegex.test(content)) {
-        if (poll) {
+        if (pollExists) {
           await message.channel.send('Evaluating . . .');
           let { results, maxVote } = poll.evaluate();
           // Has anyone responded?
           if (maxVote == 0) {
             await message.reply('No one has responded yet!');
           } else {
+            // Destroying the memory of a ongoing poll
+            pollExistsRef.set({ pollExists: false });
+            updatePollData();
             // Get the response of each user
             let userIds = Object.keys(responses);
             let members = [];
@@ -116,7 +149,7 @@ client.on('message', async (message) => {
     // Responding to the poll
     if (/^!poll/i.test(content) && !pollActivatorRegex.test(content)) {
       // Check if there is a ongoing poll
-      if (poll) {
+      if (pollExists) {
         if (/!poll\s\w$/i.test(content)) {
           let option = content.split(' ')[1].toUpperCase().charCodeAt(0) - 65; // What did the user choose?
           if (option < poll.options.length) {
@@ -173,4 +206,12 @@ client.on('message', async (message) => {
       usersToChangePoll.splice(usersToChangePoll.indexOf(userInstance), 1); // We are done and lets remove the user from our list of users willing to change the response
     }
   }
+  // Updating data in firebase
+  if (poll) {
+    updatePollData();
+  }
 });
+
+function updatePollData() {
+  pollRef.set({ poll: poll, responses, usersToChangePoll });
+}

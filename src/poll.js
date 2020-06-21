@@ -1,10 +1,10 @@
 module.exports = {
   Poll: class Poll {
-    constructor(ques, options) {
+    constructor(ques, options, responses, entries) {
       this.ques = ques;
       this.options = options;
-      this.responses = [];
-      this.entries = [];
+      this.responses = responses || [];
+      this.entries = entries || [];
     }
 
     evaluate() {
